@@ -1,104 +1,128 @@
-# To-Do List Application
+# CI/CD Pipeline for Dockerized MERN Application
 
-This project is a full-stack to-do list application with separate frontend and backend components.
+This repository contains a **CI/CD pipeline** to automate the build and deployment of a Dockerized **MERN stack application** (Backend and Frontend) using **GitHub Actions** and **Docker Hub**.
 
-## Project Structure
-
+## **Project Structure**
 ```
-To-Do-List-main/
-├── FRONTEND/   # React.js frontend
-├── BACKEND/    # Node.js + Express.js backend
-└── README.md   # Project documentation
+/Deployment
+│── BACKEND/
+│   ├── Dockerfile
+│   ├── server.js
+│   ├── package.json
+│── FRONTEND/
+│   ├── Dockerfile
+│   ├── src/
+│   ├── package.json
+│── .github/workflows/
+│   ├── ci-cd-pipeline.yml  # GitHub Actions workflow
 ```
 
----
+## **Steps Followed**
 
-# Backend Setup
+### **1. Set Up Dockerfiles**
 
-## Prerequisites
+**Backend (`BACKEND/Dockerfile`)**:
+```dockerfile
+# Use Node.js as the base image
+FROM node:18
 
-- Install [Node.js](https://nodejs.org/)
-- Install [MongoDB](https://www.mongodb.com/try/download/community)
+WORKDIR /app
 
-## Installation
+COPY package*.json ./
+RUN npm install
 
-1. Navigate to the backend folder:
-   ```sh
-   cd BACKEND
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-3. Create a `.env` file and add the following variables:
-   ```
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   ```
-4. Start the backend server:
-   ```sh
-   npm start
-   ```
+COPY . .
 
-## Technologies Used
+EXPOSE 5000
+CMD ["node", "server.js"]
+```
 
-- Node.js
-- Express.js
-- MongoDB (Mongoose)
-- Cors
-- Dotenv
+**Frontend (`FRONTEND/Dockerfile`)**:
+```dockerfile
+# Use Node.js as the base image
+FROM node:18
 
----
+WORKDIR /app
 
-# Frontend Setup
+COPY package*.json ./
+RUN npm install
 
-## Prerequisites
+COPY . .
 
-- Install [Node.js](https://nodejs.org/)
+EXPOSE 3000
+CMD ["npm", "start"]
+```
 
-## Installation
+### **2. Create GitHub Actions Workflow (`.github/workflows/ci-cd-pipeline.yml`)**
 
-1. Navigate to the frontend folder:
-   ```sh
-   cd FRONTEND
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-3. Start the frontend development server:
-   ```sh
-   npm start
-   ```
+```yaml
+name: CI/CD Pipeline
 
-## Technologies Used
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
-- React.js
-- React Router
-- Axios (for API calls)
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
----
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-# Running the Application
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-1. Start the backend server (`npm start` in `BACKEND` folder).
-2. Start the frontend server (`npm start` in `FRONTEND` folder).
-3. Open [http://localhost:3000](http://localhost:3000) in a browser to use the application.
+      - name: Build and push Backend Docker image
+        run: |
+          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/backend:latest -f BACKEND/Dockerfile BACKEND --load
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend:latest
 
----
+      - name: Build and push Frontend Docker image
+        run: |
+          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest -f FRONTEND/Dockerfile FRONTEND --load
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend:latest
+```
 
-# API Endpoints (Backend)
+### **3. Set Up GitHub Secrets**
+To authenticate Docker Hub in GitHub Actions, set up the following secrets:
+- **DOCKER_USERNAME** → Your Docker Hub username.
+- **DOCKER_PASSWORD** → Your Docker Hub access token.
 
-| Method | Endpoint    | Description    |
-| ------ | ----------- | -------------- |
-| GET    | /tasks      | Get all tasks  |
-| POST   | /tasks      | Add a new task |
-| PUT    | /tasks/\:id | Update a task  |
-| DELETE | /tasks/\:id | Delete a task  |
+**Steps to Add Secrets:**
+1. Go to **GitHub Repository → Settings → Secrets and Variables → Actions**
+2. Click **"New Repository Secret"**
+3. Add **DOCKER_USERNAME** and **DOCKER_PASSWORD**
 
----
+### **4. Commit and Push Changes**
+```sh
+git add .
+git commit -m "Added CI/CD pipeline for Dockerized MERN app"
+git push origin main
+```
 
-# Deployment
+### **5. Check GitHub Actions Workflow**
+- Go to your **GitHub repository → Actions** tab.
+- Check if the workflow runs successfully.
 
-To deploy the application, host the frontend on **Vercel/Netlify** and the backend on **Render/Heroku**.
+### **6. Deployment**
+Once the images are built and pushed to Docker Hub, you can pull and run them on any server:
+```sh
+docker pull <DOCKER_USERNAME>/backend:latest
+docker run -d -p 5000:5000 <DOCKER_USERNAME>/backend:latest
 
+docker pull <DOCKER_USERNAME>/frontend:latest
+docker run -d -p 80:80 <DOCKER_USERNAME>/frontend:latest
+```
+
+## **Conclusion**
+This CI/CD pipeline automates the process of building and deploying a **MERN application** with Docker and GitHub Actions. Every push to the `main` branch will automatically build and push the latest images to Docker Hub. 🚀
