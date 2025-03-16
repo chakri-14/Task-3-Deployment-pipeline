@@ -15,8 +15,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: List repository files (Debugging)
-        run: ls -R  # This will help debug missing files
+      - name: Debug - List files
+        run: ls -R  # Helps verify the correct directory structure
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
