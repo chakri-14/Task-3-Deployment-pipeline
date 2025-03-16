@@ -26,24 +26,10 @@ jobs:
 
       - name: Build and push Backend Docker image
         run: |
-          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/backend:latest BACKEND --load
+          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/backend:latest -f BACKEND/Dockerfile BACKEND --load
           docker push ${{ secrets.DOCKER_USERNAME }}/backend:latest
 
       - name: Build and push Frontend Docker image
         run: |
-          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest FRONTEND --load
+          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest -f FRONTEND/Dockerfile FRONTEND --load
           docker push ${{ secrets.DOCKER_USERNAME }}/frontend:latest
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Pull and run Backend container
-        run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/backend:latest
-          docker run -d -p 5000:5000 --name backend ${{ secrets.DOCKER_USERNAME }}/backend:latest
-
-      - name: Pull and run Frontend container
-        run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/frontend:latest
-          docker run -d -p 80:80 --name frontend ${{ secrets.DOCKER_USERNAME }}/frontend:latest
